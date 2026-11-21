@@ -1,0 +1,74 @@
+[
+  {
+    "bug_id": "B01",
+    "title": "Coin pack purchase charged but coins not delivered",
+    "severity": "S1",
+    "report_count": 14
+  },
+  {
+    "bug_id": "B02",
+    "title": "Crash on launch on Android 14",
+    "severity": "S1",
+    "report_count": 12
+  },
+  {
+    "bug_id": "B03",
+    "title": "Leaderboard not updating after races",
+    "severity": "S2",
+    "report_count": 9
+  },
+  {
+    "bug_id": "B04",
+    "title": "Owned car missing from garage after 2.4.0 update",
+    "severity": "S1",
+    "report_count": 10
+  },
+  {
+    "bug_id": "B05",
+    "title": "Tutorial soft-lock at drift lesson",
+    "severity": "S2",
+    "report_count": 8
+  },
+  {
+    "bug_id": "B06",
+    "title": "Race freezes after returning from background",
+    "severity": "S2",
+    "report_count": 6
+  },
+  {
+    "bug_id": "B07",
+    "title": "VIP subscription not restored on new device / reinstall",
+    "severity": "S1",
+    "report_count": 5
+  },
+  {
+    "bug_id": "B08",
+    "title": "Multiplayer disconnect at race start",
+    "severity": "S2",
+    "report_count": 7
+  },
+  {
+    "bug_id": "B09",
+    "title": "Audio lost after rewarded ad",
+    "severity": "S3",
+    "report_count": 5
+  },
+  {
+    "bug_id": "B10",
+    "title": "Turkish text overflows buttons in garage menu",
+    "severity": "S4",
+    "report_count": 3
+  },
+  {
+    "bug_id": "B11",
+    "title": "Daily reward timer resets on app open",
+    "severity": "S3",
+    "report_count": 4
+  },
+  {
+    "bug_id": "B12",
+    "title": "Metallic car paint flickers in garage on iOS",
+    "severity": "S4",
+    "report_count": 3
+  }
+]

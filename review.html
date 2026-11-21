@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triage Desk</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --ink: #16181d; --muted: #5d6573; --line: #e3e6eb; --hover: #f0f2f5;
+  --accent: #3a5ccc; --accent-ink: #fff; --ok: #1e8e5a; --ok-bg: #e3f5ec;
+  --s1: #c4314b; --s1-bg: #fde8ec; --s2: #c25e00; --s2-bg: #fff0e0; --s3: #8a6d00; --s3-bg: #fbf4d6;
+  --s4: #4f6178; --s4-bg: #e9eef4; --shadow: 0 1px 2px rgba(0,0,0,.05);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111318; --panel: #1a1d24; --ink: #e8eaee; --muted: #9aa3b2; --line: #2b303a; --hover: #222631;
+  --accent: #7d9bff; --accent-ink: #0d1020; --ok: #4cc38a; --ok-bg: #173226;
+  --s1: #ff7c90; --s1-bg: #3a1820; --s2: #ffa955; --s2-bg: #3a2614; --s3: #e8c95a; --s3-bg: #33290e;
+  --s4: #a8b6ca; --s4-bg: #242b36; --shadow: none; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111318; --panel: #1a1d24; --ink: #e8eaee; --muted: #9aa3b2; --line: #2b303a; --hover: #222631;
+  --accent: #7d9bff; --accent-ink: #0d1020; --ok: #4cc38a; --ok-bg: #173226;
+  --s1: #ff7c90; --s1-bg: #3a1820; --s2: #ffa955; --s2-bg: #3a2614; --s3: #e8c95a; --s3-bg: #33290e;
+  --s4: #a8b6ca; --s4-bg: #242b36; --shadow: none; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 7px; padding: 6px 11px; }
+button:hover { background: var(--hover); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.ghost { border-color: transparent; background: transparent; }
+button:disabled { opacity: .5; cursor: default; }
+input, textarea, select { background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 6px 8px; width: 100%; }
+textarea { resize: vertical; min-height: 64px; }
+header { display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+header h1 { font-size: 16px; margin: 0; letter-spacing: -.01em; }
+header .meta { color: var(--muted); font-size: 12.5px; }
+header .spacer { flex: 1; }
+.stats { display: flex; gap: 18px; padding: 12px 20px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.stat b { font-size: 18px; display: block; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 12px; }
+.tabs { display: flex; gap: 4px; padding: 8px 20px 0; }
+.tabs button { border-radius: 7px 7px 0 0; border-bottom: none; }
+.tabs button[aria-selected="true"] { background: var(--panel); font-weight: 600; }
+main { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; min-height: calc(100vh - 170px); border-top: 1px solid var(--line); }
+#list { border-right: 1px solid var(--line); background: var(--panel); overflow: auto; max-height: calc(100vh - 170px); }
+.filters { display: flex; gap: 6px; padding: 10px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); }
+.item { padding: 11px 14px; border-bottom: 1px solid var(--line); cursor: pointer; display: grid; gap: 4px; }
+.item:hover { background: var(--hover); }
+.item[aria-current="true"] { background: var(--hover); box-shadow: inset 3px 0 0 var(--accent); }
+.item .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.item .title { font-weight: 550; }
+.small { font-size: 12px; color: var(--muted); }
+.badge { display: inline-block; font-size: 11.5px; font-weight: 650; padding: 1px 7px; border-radius: 99px; white-space: nowrap; }
+.S1 { color: var(--s1); background: var(--s1-bg); } .S2 { color: var(--s2); background: var(--s2-bg); }
+.S3 { color: var(--s3); background: var(--s3-bg); } .S4 { color: var(--s4); background: var(--s4-bg); }
+.pri { border: 1px solid var(--line); color: var(--muted); }
+.approved { color: var(--ok); background: var(--ok-bg); }
+.money { color: var(--s2); }
+.conf { display: inline-flex; align-items: center; gap: 5px; }
+.conf i { display: inline-block; width: 38px; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.conf i::after { content: ""; display: block; height: 100%; width: var(--w); background: var(--accent); }
+#detail { padding: 20px 26px; overflow: auto; max-height: calc(100vh - 170px); }
+#detail h2 { margin: 0 0 6px; font-size: 19px; letter-spacing: -.01em; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; align-items: center; }
+.actions select { width: auto; max-width: 230px; }
+section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 12px 0; box-shadow: var(--shadow); }
+section.card h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+ol, ul { margin: 0; padding-left: 20px; }
+.inferred { color: var(--muted); font-style: italic; }
+.report { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); align-items: flex-start; }
+.report:first-of-type { border-top: none; }
+.report .body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.rep-tag { font-size: 11px; color: var(--accent); font-weight: 650; }
+.empty { color: var(--muted); padding: 40px; text-align: center; }
+.form-grid { display: grid; gap: 10px; }
+.form-grid label { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.drop { margin: 60px auto; max-width: 520px; padding: 40px; text-align: center; border: 2px dashed var(--line); border-radius: 14px; background: var(--panel); }
+#replies { padding: 16px 20px; display: none; }
+.reply { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+.reply .orig { color: var(--muted); font-size: 12.5px; margin-bottom: 6px; overflow-wrap: anywhere; }
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+.back { display: none; }
+@media (max-width: 760px) {
+  header, .stats, .tabs { padding-left: 16px; padding-right: 16px; }
+  main { grid-template-columns: 1fr; }
+  #list, #detail { max-height: none; }
+  main.show-detail #list { display: none; }
+  main:not(.show-detail) #detail { display: none; }
+  #detail { padding: 16px; }
+  .back { display: inline-block; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Triage Desk</h1>
+  <span class="meta" id="meta">Neon Drift · player bug reports</span>
+  <span class="spacer"></span>
+  <button id="export" class="primary" disabled>Export approved CSV</button>
+  <button id="reset" title="Discard review decisions for this run">Reset</button>
+  <button id="theme" class="ghost" title="Toggle theme" aria-label="Toggle theme">◐</button>
+</header>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="file" accept=".json,application/json" hidden>
+
+<!-- `python triage.py run` writes out/review.html with the run's data embedded here. -->
+<script id="triage-data" type="application/json">null</script>
+
+<script>
+(() => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+    del(k) { try { localStorage.removeItem(k); } catch {} },
+  };
+  const toast = msg => { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 1800); };
+
+  // ---------- theme ----------
+  const applyTheme = t => { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; };
+  applyTheme(store.get("td-theme"));
+  $("#theme").onclick = () => {
+    const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === "dark"
+      : matchMedia("(prefers-color-scheme: dark)").matches;
+    const next = dark ? "light" : "dark"; applyTheme(next); store.set("td-theme", next);
+  };
+
+  let data = null, state = null, selected = null, tab = "issues", filter = "all";
+  const key = () => "td-review-" + data.run_id;
+  const save = () => store.set(key(), state);
+  const log = (action, detail) => state.log.push({ at: new Date().toISOString(), action, detail });
+
+  function load(d) {
+    data = d;
+    state = store.get(key()) || { issues: structuredClone(d.issues).map(i => ({ ...i, status: "draft" })), log: [], nextId: d.issues.length + 1 };
+    selected = state.issues[0]?.id ?? null;
+    $("#meta").textContent = `Neon Drift · ${d.generated_at.replace("T", " ")} · ${d.mode === "ai" ? "AI mode" : "rule-based mode"}`;
+    render();
+  }
+
+  const sevNum = s => +s[1], priNum = p => +p[1];
+  const sorted = () => [...state.issues].sort((a, b) => priNum(a.priority) - priNum(b.priority) || sevNum(a.severity) - sevNum(b.severity) || b.report_ids.length - a.report_ids.length);
+  const current = () => state.issues.find(i => i.id === selected);
+
+  function render() {
+    const s = data.stats, approved = state.issues.filter(i => i.status === "approved").length;
+    const s1 = state.issues.filter(i => i.severity === "S1").length;
+    $("#export").disabled = !approved;
+    $("#export").textContent = `Export ${approved} approved CSV`;
+    $("#app").innerHTML = `
+      <div class="stats">
+        <div class="stat"><b>${s.messages}</b><span>messages</span></div>
+        <div class="stat"><b>${s.bug_reports}</b><span>bug reports</span></div>
+        <div class="stat"><b>${state.issues.length}</b><span>issues</span></div>
+        <div class="stat"><b style="color:var(--s1)">${s1}</b><span>S1</span></div>
+        <div class="stat"><b style="color:var(--ok)">${approved}/${state.issues.length}</b><span>approved</span></div>
+        <div class="stat"><b>${data.replies.length}</b><span>reply drafts</span></div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="${tab === "issues"}" data-tab="issues">Issues</button>
+        <button role="tab" aria-selected="${tab === "replies"}" data-tab="replies">Player replies (${data.replies.length})</button>
+      </div>
+      <main id="main" ${tab === "issues" ? "" : 'style="display:none"'}>
+        <div id="list"></div><div id="detail"></div>
+      </main>
+      <div id="replies" ${tab === "replies" ? 'style="display:block"' : ""}></div>`;
+    document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { tab = b.dataset.tab; render(); });
+    if (tab === "issues") { renderList(); renderDetail(); } else renderReplies();
+  }
+
+  function renderList() {
+    const items = sorted().filter(i => filter === "all" || (filter === "open" ? i.status !== "approved" : i.severity === filter));
+    $("#list").innerHTML = `
+      <div class="filters">
+        <select id="filter" aria-label="Filter">
+          ${[["all","All issues"],["open","Not yet approved"],["S1","S1 only"],["S2","S2 only"],["S3","S3 only"],["S4","S4 only"]]
+            .map(([v,l]) => `<option value="${v}" ${filter === v ? "selected" : ""}>${l}</option>`).join("")}
+        </select>
+      </div>
+      ${items.map(i => `
+        <div class="item" data-id="${i.id}" aria-current="${i.id === selected}">
+          <div class="row"><span class="badge ${i.severity}">${i.severity}</span><span class="badge pri">${i.priority}</span>
+            ${i.status === "approved" ? '<span class="badge approved">✓ approved</span>' : ""}
+            ${i.monetization_impact ? '<span class="small money" title="Real money involved">💰 money</span>' : ""}
+            <span class="spacer" style="flex:1"></span><span class="small">${i.id}</span></div>
+          <div class="title">${esc(i.ticket.title)}</div>
+          <div class="row small"><span>${i.report_ids.length} report${i.report_ids.length > 1 ? "s" : ""}</span> ·
+            <span class="conf" title="Grouping confidence">group conf <i style="--w:${Math.round(i.confidence * 100)}%"></i> ${i.confidence.toFixed(2)}</span></div>
+        </div>`).join("") || '<div class="empty">No issues match.</div>'}`;
+    $("#filter").onchange = e => { filter = e.target.value; renderList(); };
+    document.querySelectorAll(".item").forEach(el => el.onclick = () => {
+      selected = el.dataset.id; $("#main").classList.add("show-detail"); renderList(); renderDetail(); });
+  }
+
+  function renderDetail(editing = false) {
+    const i = current(), el = $("#detail");
+    if (!i) { el.innerHTML = '<div class="empty">Select an issue.</div>'; return; }
+    const t = i.ticket, others = sorted().filter(o => o.id !== i.id);
+    const step = s => s.includes("(inferred, needs verification)")
+      ? `${esc(s.replace(" (inferred, needs verification)", ""))} <span class="inferred">(inferred, needs verification)</span>` : esc(s);
+    el.innerHTML = `
+      <button class="back ghost" id="back">← All issues</button>
+      <div class="small">${i.id} · ${i.category ? i.category.replace("_", " ") : ""} · grouping confidence ${i.confidence.toFixed(2)}</div>
+      <h2>${esc(t.title)}</h2>
+      <div class="row" style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge ${i.severity}">${i.severity}</span><span class="badge pri">${i.priority}</span>
+        ${i.status === "approved" ? '<span class="badge approved">✓ approved</span>' : '<span class="badge pri">draft</span>'}
+        ${i.monetization_impact ? '<span class="badge S2">💰 money involved</span>' : ""}
+      </div>
+      <div class="actions">
+        ${i.status === "approved" ? '<button id="unapprove">Undo approve</button>' : '<button class="primary" id="approve">Approve</button>'}
+        <button id="edit">${editing ? "Cancel edit" : "Edit ticket"}</button>
+        <select id="sev" aria-label="Severity">${["S1","S2","S3","S4"].map(s => `<option ${s === i.severity ? "selected" : ""}>${s}</option>`).join("")}</select>
+        <select id="pri" aria-label="Priority">${["P1","P2","P3","P4"].map(p => `<option ${p === i.priority ? "selected" : ""}>${p}</option>`).join("")}</select>
+        <select id="merge" aria-label="Merge into"><option value="">Merge into…</option>
+          ${others.map(o => `<option value="${o.id}">${o.id} · ${esc(o.ticket.title.slice(0, 50))}</option>`).join("")}</select>
+      </div>
+      ${editing ? `
+      <section class="card"><h3>Edit ticket</h3><div class="form-grid">
+        <label>Title<input id="f-title" value="${esc(t.title)}"></label>
+        <label>Environment<textarea id="f-env">${esc(t.environment)}</textarea></label>
+        <label>Steps to reproduce (one per line)<textarea id="f-steps" rows="5">${esc(t.steps_to_reproduce.join("\n"))}</textarea></label>
+        <label>Expected<textarea id="f-exp">${esc(t.expected)}</textarea></label>
+        <label>Actual<textarea id="f-act">${esc(t.actual)}</textarea></label>
+        <label>Missing info (one per line)<textarea id="f-miss">${esc(t.missing_info.join("\n"))}</textarea></label>
+        <div><button class="primary" id="save">Save changes</button></div>
+      </div></section>` : `
+      <section class="card"><h3>Environment</h3><div>${esc(t.environment)}</div></section>
+      <section class="card"><h3>Steps to reproduce</h3><ol>${t.steps_to_reproduce.map(s => `<li>${step(s)}</li>`).join("")}</ol></section>
+      <section class="card"><h3>Expected vs actual</h3><div><b>Expected:</b> ${esc(t.expected)}</div><div><b>Actual:</b> ${esc(t.actual)}</div></section>
+      <section class="card"><h3>Why ${i.severity} / ${i.priority}</h3><div>${esc(i.severity_reasoning)}</div></section>
+      <section class="card"><h3>Missing info QA should collect</h3><ul>${t.missing_info.map(m => `<li>${esc(m)}</li>`).join("")}</ul></section>`}
+      <section class="card"><h3>Linked player reports (${i.report_ids.length})</h3>
+        ${i.report_ids.map(id => { const m = data.messages[id]; return `
+          <div class="report"><div class="body">
+            ${id === i.representative_id ? '<div class="rep-tag">REPRESENTATIVE</div>' : ""}
+            <div>${esc(m.text)}</div>
+            <div class="small">${id} · ${esc(m.author)} · ${esc(m.channel)} · ${esc(m.timestamp.replace("T", " "))}</div></div>
+            ${i.report_ids.length > 1 ? `<button class="ghost small" data-split="${id}" title="Wrongly grouped? Move to its own issue">Split out</button>` : ""}
+          </div>`; }).join("")}
+      </section>`;
+
+    $("#back").onclick = () => { $("#main").classList.remove("show-detail"); };
+    const act = (fn, msg) => { fn(); save(); render(); if (msg) toast(msg); };
+    $("#approve") && ($("#approve").onclick = () => act(() => { i.status = "approved"; log("approve", i.id); }, `${i.id} approved`));
+    $("#unapprove") && ($("#unapprove").onclick = () => act(() => { i.status = "draft"; log("unapprove", i.id); }));
+    $("#edit").onclick = () => renderDetail(!editing);
+    $("#sev").onchange = e => act(() => { log("severity", `${i.id} ${i.severity} -> ${e.target.value}`);
+      i.severity_reasoning += ` Reviewer changed severity ${i.severity} -> ${e.target.value}.`; i.severity = e.target.value; }, "Severity updated");
+    $("#pri").onchange = e => act(() => { log("priority", `${i.id} ${i.priority} -> ${e.target.value}`);
+      i.severity_reasoning += ` Reviewer changed priority ${i.priority} -> ${e.target.value}.`; i.priority = e.target.value; }, "Priority updated");
+    $("#merge").onchange = e => {
+      const target = state.issues.find(o => o.id === e.target.value); if (!target) return;
+      if (!confirm(`Merge ${i.id} (${i.report_ids.length} reports) into ${target.id}?`)) { e.target.value = ""; return; }
+      act(() => {
+        target.report_ids.push(...i.report_ids);
+        if (sevNum(i.severity) < sevNum(target.severity)) target.severity = i.severity;
+        if (priNum(i.priority) < priNum(target.priority)) target.priority = i.priority;
+        target.monetization_impact ||= i.monetization_impact;
+        target.status = "draft";
+        target.severity_reasoning += ` Merged ${i.id} into this issue (kept the higher severity/priority).`;
+        state.issues = state.issues.filter(o => o !== i); selected = target.id; log("merge", `${i.id} -> ${target.id}`);
+      }, `Merged into ${target.id}`);
+    };
+    document.querySelectorAll("[data-split]").forEach(b => b.onclick = () => act(() => {
+      const id = b.dataset.split, m = data.messages[id];
+      i.report_ids = i.report_ids.filter(r => r !== id);
+      if (i.representative_id === id) i.representative_id = i.report_ids[0];
+      const nid = `ND-${String(state.nextId++).padStart(3, "0")}`;
+      state.issues.push({ ...structuredClone(i), id: nid, report_ids: [id], representative_id: id, confidence: 1, status: "draft",
+        severity_reasoning: `Split out of ${i.id} by reviewer; severity copied, please re-check.`,
+        ticket: { ...structuredClone(i.ticket), title: (m.fields?.summary || m.text).slice(0, 100), actual: m.text,
+                  environment: "See linked report." } });
+      log("split", `${id} from ${i.id} -> ${nid}`); selected = nid;
+    }, "Split into a new issue"));
+    $("#save") && ($("#save").onclick = () => act(() => {
+      const lines = s => $(s).value.split("\n").map(x => x.trim()).filter(Boolean);
+      Object.assign(i.ticket, { title: $("#f-title").value.trim(), environment: $("#f-env").value.trim(),
+        steps_to_reproduce: lines("#f-steps"), expected: $("#f-exp").value.trim(), actual: $("#f-act").value.trim(),
+        missing_info: lines("#f-miss") });
+      i.ticket.steps_inferred = i.ticket.steps_to_reproduce.some(s => s.includes("inferred"));
+      log("edit", i.id);
+    }, "Ticket saved"));
+  }
+
+  function renderReplies() {
+    $("#replies").innerHTML = `<p class="small">Drafts only. Nothing is posted automatically; copy a reply into Discord yourself.</p>` +
+      data.replies.map(r => `
+        <div class="reply"><div class="orig">${esc(r.author)} wrote: “${esc(data.messages[r.message_id].text)}”</div>
+          <div>${esc(r.text)}</div>
+          <div style="margin-top:8px"><button data-copy="${r.message_id}">Copy</button> <span class="small">${r.language.toUpperCase()}</span></div></div>`).join("");
+    document.querySelectorAll("[data-copy]").forEach(b => b.onclick = async () => {
+      const r = data.replies.find(x => x.message_id === b.dataset.copy);
+      try { await navigator.clipboard.writeText(r.text); toast("Copied"); } catch { toast("Copy failed"); }
+    });
+  }
+
+  // ---------- CSV export (same columns as export.py) ----------
+  const JIRA = { P1: "Highest", P2: "High", P3: "Medium", P4: "Low" };
+  const csvCell = v => `"${String(v).replace(/"/g, '""')}"`;
+  function description(i) {
+    const t = i.ticket, L = ["h3. Steps to reproduce"];
+    if (t.steps_inferred) L.push("_Steps marked (inferred, needs verification) were not stated by players._");
+    L.push(...t.steps_to_reproduce.map(s => "# " + s), "h3. Expected", t.expected, "h3. Actual", t.actual,
+      "h3. Severity reasoning", i.severity_reasoning, `h3. Player reports (${i.report_ids.length})`,
+      ...i.report_ids.map(id => `* [${id}] ${data.messages[id].text}`), "h3. Missing info QA should collect",
+      ...t.missing_info.map(m => "* " + m), `_Drafted by Triage Desk, grouping confidence ${i.confidence.toFixed(2)}. Approved in review._`);
+    return L.join("\n");
+  }
+  $("#export").onclick = () => {
+    const rows = [["Summary","Issue Type","Priority","Severity","Labels","Environment","Description","Linked Reports"]];
+    sorted().filter(i => i.status === "approved").forEach(i => rows.push([i.ticket.title, "Bug", JIRA[i.priority], i.severity,
+      ["player-report", "neon-drift", i.severity.toLowerCase(), ...(i.monetization_impact ? ["monetization"] : [])].join(" "),
+      i.ticket.environment, description(i), i.report_ids.join(" ")]));
+    const blob = new Blob(["﻿" + rows.map(r => r.map(csvCell).join(",")).join("\r\n")], { type: "text/csv" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `jira_approved_${data.run_id}.csv` });
+    a.click(); URL.revokeObjectURL(a.href); log("export", `${rows.length - 1} tickets`); save(); toast(`Exported ${rows.length - 1} tickets`);
+  };
+  $("#reset").onclick = () => { if (data && confirm("Discard all review decisions for this run?")) { store.del(key()); load(data); toast("Review reset"); } };
+
+  // ---------- data loading: embedded > out/triage.json > file picker ----------
+  function showPicker(note = "") {
+    $("#app").innerHTML = `<div class="drop"><h2 style="margin-top:0">Load a triage run</h2>
+      <p class="small">${note}Run <code>python triage.py run</code> and open <code>out/review.html</code>, or choose <code>out/triage.json</code> here.</p>
+      <button class="primary" id="pick">Choose triage.json</button></div>`;
+    $("#pick").onclick = () => $("#file").click();
+  }
+  $("#file").onchange = async e => { try { load(JSON.parse(await e.target.files[0].text())); } catch { showPicker("That file could not be read. "); } };
+  document.addEventListener("dragover", e => e.preventDefault());
+  document.addEventListener("drop", async e => { e.preventDefault(); const f = e.dataTransfer.files[0];
+    if (f) try { load(JSON.parse(await f.text())); } catch { toast("Not a triage.json file"); } });
+
+  const embedded = JSON.parse($("#triage-data").textContent);
+  if (embedded) load(embedded);
+  else fetch("out/triage.json").then(r => r.ok ? r.json() : Promise.reject()).then(load).catch(() => showPicker());
+})();
+</script>
+</body>
+</html>
